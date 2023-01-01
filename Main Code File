@@ -1,0 +1,546 @@
+"""
+This is the main file for my Yahtzee game
+
+According to the final project assignment in Canvas:
+"Your final project must demonstrate all of the following techniques:
+
+Conditionals and Boolean Logic
+Loops
+Functions
+Exception Handling
+Importing and using modules that you define
+Importing and using external modules either from the standard library or elsewhere
+Lists
+Dictionaries"
+
+For the rough draft:
+"For your initial submission of your final project you must turn in a project with most of the functions
+defined and the docstrings written. You also must import the external modules you plan to use as well as having
+created your own separate .py files as appropriate."
+
+"""
+
+import random
+import sys
+import texttable
+import YahtzeeSymbols
+
+# roll is used to track how many (out of three) rolls have been completed so that the score can be entered on roll 3
+roll = 1
+# dice saves new dice, 5 minus however many were saved
+dice = []
+# savedDice saves user specified dice, up to 5
+savedDice = []
+# all dice is a combination of dice + savedDice to get the total of 5 dice
+allDice = []
+# errorHandlingDice is for if error handling is called, to keep the correct number of dice
+errorHandlingDice = []
+# numErrors keeps track of how many errors have been made in diceSelect
+numErrors = 0
+# scorecard keeps track of the user's score and is updated after each turn
+scorecard = {"Ones": 0, "Twos": 0, 'Threes': 0, 'Fours': 0, 'Fives': 0, 'Sixes': 0,
+             'Three of A Kind': 0, 'Four of a Kind': 0, 'Full House': 0, 'Small Straight': 0,
+             'Large Straight': 0, 'Yahtzee': 0, 'Chance': 0
+             }
+# emptySpaces keeps track of which score slots have not yet been filled in
+emptySpaces = []
+# turns keeps track of how many turns have been completed and stops after 13 turns
+turns = 13
+
+
+def requestDirections():
+    """
+    This function asks if you would like directions on how to play. If yes, calls directions function from
+    auxiliary file
+    :return:
+    """
+    wantDirections = input("Would you like directions on how to play Yahtzee? (y or n): ")
+    if wantDirections == 'y':
+        YahtzeeSymbols.directions()
+    elif wantDirections == 'n':
+        print('Enjoy your game!')
+    else:
+        print("That is not valid input, please try again.")
+        requestDirections()
+
+
+def diceRoll():
+    """
+    This function simulates rolling 5 dice (or fewer, if some have already been saved it rolls enough to total 5 dice)
+    and adds them to a list, which is printed to the screen.
+    If three rolls have previously been completed, it clears saved data and sets the count back to 1
+    :return:
+    """
+    global roll
+    global numErrors
+    numErrors == 0
+    errorHandlingDice.clear()
+    if roll == 4:
+        dice.clear()
+        savedDice.clear()
+        allDice.clear()
+        roll = 1
+    else:
+        pass
+    if len(savedDice) == 0:
+        count = 5
+    else:
+        count = 5 - len(savedDice)
+        # print(count)  #just for testing
+    dice.clear()
+    while count > 0:
+        rolledDie = random.randint(1, 6)
+        dice.append(rolledDie)
+        count = count - 1
+# diceRoll()
+
+
+def diceSelect():
+    """
+    This prints the dice generated in diceRoll and allows the user to select some to save based on positional value,
+    which may make more sense once I add in the dice animations instead
+    Note: Error handling needs works, if time may want to make it so the same die can't be saved multiple times
+    :return:
+    """
+    global roll
+    global numErrors
+    print("Your dice are: ")
+    count = 1
+    allDice.clear()
+    # this proprogates dice to variables to combine new and saved dice, and to set up error handling
+    while count <= 5:
+        if numErrors > 0:
+            allDice.clear()
+            numErrors = 0
+            for i in errorHandlingDice:
+                allDice.append(i)
+                #print(str(count) + ":  " + str(i))
+                count += 1
+        else:
+            for i in savedDice:
+                allDice.append(i)
+                errorHandlingDice.append(i)
+                #print(str(count) + ":  " + str(i))
+                count += 1
+            for i in dice:
+                allDice.append(i)
+                errorHandlingDice.append(i)
+                #print(str(count) + ":  " + str(i))
+                count += 1
+    YahtzeeSymbols.prettyDice(allDice)
+    # print(allDice[:])
+    # print(roll)
+    # This gives the option to select up to 5 dice for saving
+    try:
+        savedDice.clear()
+        """
+        if numErrors > 0:
+            allDice.clear()
+            for i in errorHandlingDice:
+                allDice.append(i)
+        else:
+            pass
+            """
+        if roll != 3:
+            numSaved = int(input("How many dice would you like to save (0-5): "))
+            if numSaved >= 0 and numSaved <= 5 and roll < 3:
+                count = 0
+                while numSaved != count:
+                    count = count + 1
+                    toSave = int(input("Enter the positional value of die number " + str(count) + " to be saved: "))
+                    savedDice.append(allDice[toSave - 1])
+                if numSaved == 0:
+                    print("You have not saved any dice.")
+                else:
+                    print("You have saved the dice " + str(savedDice[:]))
+            else:
+                print('That is not valid, please enter a number between 0 and 5.')
+                diceSelect()
+        else:
+            print("Your final hand is: ")
+            count = 1
+            for i in allDice:
+                print(str(count) + ": " + str(i))
+                savedDice.append(i)
+                count += 1
+    # These exceptions catch errors within the user input for number to save and which ones to save
+    except(ValueError):
+        print('Please enter a numerical value between 0 and 5.')
+        diceSelect()
+    except(IndexError):
+        print("The number you are entering is out of range. Please enter the positional value of the die to save, between 1 amd 5.")
+        numErrors += 1
+        diceSelect()
+
+# diceSelect()
+# diceRoll()
+# diceSelect()
+
+
+def gamePlay():
+    """
+    This function calls all functions needed in the correct order for each roll of a turn (1-3)
+    :return:
+    """
+    # For first roll: rolls dice, lets save, offers to put in score
+    global roll
+    diceRoll()
+    diceSelect()
+    """ offer = input('Would you like to enter a score? (y or n): ') # Thought I would use it, but I think it would end up being too confusing on the user end
+    if offer == "y":
+        score()
+        roll = 4
+    else:
+        pass"""
+    # For second roll: rolls dice, lets save, offers to put in score
+    roll = 2
+    diceRoll()
+    diceSelect()
+    """offer = input('Would you like to enter a score? (y or n): ')  # see above
+    if offer == "y":
+        score()
+        roll = 4
+    else:
+        pass"""
+    # For third roll: rolls dice, lets save, forces to enter the scoring function, updates the turn counter in endgame
+    roll = 3
+    diceRoll()
+    diceSelect()
+    score()
+    roll = 4
+    endGame()
+
+
+def playAgain():
+    """
+    This function clears all lists and dictionaries and restarts the game.
+    :return:
+    """
+    dice.clear()
+    savedDice.clear()
+    allDice.clear()
+    global turns
+    turns = 13
+    global scorecard
+    scorecard.clear()
+    scorecard = {"Ones": 0, "Twos": 0, 'Threes': 0, 'Fours': 0, 'Fives': 0, 'Sixes': 0,
+                 'Three of A Kind': 0, 'Four of a Kind': 0, 'Full House': 0, 'Small Straight': 0,
+                 'Large Straight': 0, 'Yahtzee': 0, 'Chance': 0}
+    gamePlay()
+
+
+def score():
+    """
+    This will print the current scorecard, and allow the player to select where to place the dice. It calls
+    a variety of functions in order to properly score the dice for the category specified
+    :return:
+    """
+    # This creates and prints a scorecard
+    emptySpaces.clear()
+    scoreTable = texttable.Texttable()
+    scoreTable.reset()
+    scoreTable.add_row(["Move Name", "Score"])
+    print()
+    print('Here is your scorecard: ')
+    for key, value in scorecard.items():
+        scoreTable.add_row([key, value])
+        if value == 0:
+            emptySpaces.append(key)
+        else:
+            pass
+    print(scoreTable.draw())
+    print()
+    print('Your final hand is :' )
+    YahtzeeSymbols.prettyDice(savedDice)
+    print('You can place this roll in: ')
+    for i in emptySpaces:
+        print(i)
+    # This lets the user select where to place the roll, and calls the relevant function for that roll
+    scoreSelection = input("Please enter the category you would like to place this roll in: ")
+    scoreSelectionLower = scoreSelection.lower()
+    if scoreSelectionLower == "ones":
+        Ones()
+    elif scoreSelectionLower == "twos":
+        Twos()
+    elif scoreSelectionLower == "threes":
+        Threes()
+    elif scoreSelectionLower == "fours":
+        Fours()
+    elif scoreSelectionLower == "fives":
+        Fives()
+    elif scoreSelectionLower == "sixes":
+        Sixes()
+    elif scoreSelectionLower == "three of a kind":
+        threeOfAKind()
+    elif scoreSelectionLower == "four of a kind":
+        fourOfAKind()
+    elif scoreSelectionLower == "full house":
+        fullHouse()
+    elif scoreSelectionLower == "small straight":
+        smallStraight()
+    elif scoreSelectionLower == "large straight":
+        largeStraight()
+    elif scoreSelectionLower == "yahtzee":
+        Yahtzee()
+    elif scoreSelectionLower == "chance":
+        Chance()
+    else:
+        print('Your selection is not valid. Please try again.')
+        score()
+
+
+def calcScore():
+    """
+    This calculates the scores for upper and lower sections, checks if a bonus was earned, and gives the combined score
+    :return:
+    """
+    # Prints final scorecard
+    print('Here is your final scorecard: ')
+    scoreTable = texttable.Texttable()
+    scoreTable.reset()
+    scoreTable.add_row(["Move Name", "Score"])
+    print()
+    # print('Here is your scorecard: ')
+    for key, value in scorecard.items():
+        scoreTable.add_row([key, value])
+    print(scoreTable.draw())
+
+    #calculates and prints total scores / bonus details
+    upperScore = int(scorecard['Ones']) + int(scorecard['Twos']) + int(scorecard['Threes']) + int(scorecard["Fours"]) + int(scorecard['Fives']) + int(scorecard['Sixes'])
+    global bonus
+    print()
+    print('Your upper section score is ' + str(upperScore))
+    if upperScore >= 63:
+        bonus = 35
+        print('You have received a bonus of 35 points')
+    else:
+        bonus = 0
+        print('You have not received a bonus. Get 63 points or above in the upper section to get a bonus.')
+    lowerScore = int(scorecard['Three of A Kind']) + int(scorecard['Four of a Kind']) + int(scorecard['Full House']) + int(scorecard['Small Straight']) + int(scorecard['Large Straight']) + int(scorecard['Yahtzee']) + int(scorecard['Chance'])
+    print('Your lower section score is ' + str(lowerScore))
+    totalScore = upperScore + lowerScore + bonus
+    print('Your total score is ' + str(totalScore))
+
+
+
+
+def Ones():
+    """
+    This calculates the total of all ones and adds score to the scorecard function
+    :return:
+    """
+    newScore = 0
+    for i in allDice:
+        if i == 1:
+            newScore += 1
+        else:
+            pass
+    # print(newScore)
+    scorecard["Ones"] = newScore
+
+
+def Twos():
+    """
+    This calculates the total of all twos and adds score to the scorecard function
+    :return:
+    """
+    newScore = 0
+    for i in allDice:
+        if i == 2:
+            newScore += 2
+        else:
+            pass
+    scorecard["Twos"] = newScore
+
+
+def Threes():
+    """
+    This calculates the total of all threes and adds score to the scorecard function
+    :return:
+    """
+    newScore = 0
+    for i in allDice:
+        if i == 3:
+            newScore += 3
+        else:
+            pass
+    scorecard["Threes"] = newScore
+
+
+def Fours():
+    """
+    This calculates the total of all fours and adds score to the scorecard function
+    :return:
+    """
+    newScore = 0
+    for i in allDice:
+        if i == 4:
+            newScore += 4
+        else:
+            pass
+    scorecard["Fours"] = newScore
+
+
+def Fives():
+    """
+    This calculates the total of all fives and adds score to the scorecard function
+    :return:
+    """
+    newScore = 0
+    for i in allDice:
+        if i == 5:
+            newScore += 5
+        else:
+            pass
+    scorecard["Fives"] = newScore
+
+
+def Sixes():
+    """
+    This calculates the total of all sixes and adds score to the scorecard function
+    :return:
+    """
+    newScore = 0
+    for i in allDice:
+        if i == 6:
+            newScore += 6
+        else:
+            pass
+    scorecard["Sixes"] = newScore
+
+
+def threeOfAKind():
+    """
+    This function verifies and scores Three-of-a-Kind (total of all dice)
+    :return:
+    """
+    allDice.sort()
+    if allDice[0] == allDice[1] and allDice[1] == allDice[2]:
+        newScore = 0
+        for i in allDice:
+            newScore = newScore + i
+        scorecard['Three of A Kind'] = newScore
+    elif allDice[1] == allDice[2] and allDice[2] == allDice[3]:
+        newScore = 0
+        for i in allDice:
+            newScore = newScore + i
+        scorecard['Three of A Kind'] = newScore
+    elif allDice[2] == allDice[3] and allDice[3] == allDice[4]:
+        newScore = 0
+        for i in allDice:
+            newScore = newScore + i
+        scorecard['Three of A Kind'] = newScore
+    else:
+        print("This roll is not 3 of a kind. You will receive a zero in your 3 of a kind section.")
+
+
+def fourOfAKind():
+    """
+    This function checks for and scores four-of-a-kind rolls (total of all dice)
+    :return:
+    """
+    allDice.sort()
+    if allDice[0] == allDice[1] and allDice[1] == allDice[2] and allDice[2] == allDice[3]:
+        newScore = 0
+        for i in allDice:
+            newScore = newScore + i
+        scorecard['Four of a Kind'] = newScore
+    elif allDice[1] == allDice[2] and allDice[2] == allDice[3] and allDice[3] == allDice[4]:
+        newScore = 0
+        for i in allDice:
+            newScore = newScore + i
+        scorecard['Four of a Kind'] = newScore
+    else:
+        print("This roll is not 4 of a kind. You will receive a zero in your 4 of a kind section.")
+
+
+def fullHouse():
+    """
+    This function checks for full house. If found, 25 points added to scorecard
+    :return:
+    """
+    allDice.sort()
+    if allDice[0] == allDice[1] and allDice[1] == allDice[2] and allDice[3] == allDice[4]:
+        scorecard['Full House'] = 25
+    elif allDice[0] == allDice[1] and allDice[2] == allDice[3] and allDice[3] == allDice[4]:
+        scorecard['Full House'] = 25
+    else:
+        print("This roll is not a full house. You will receive a zero in your full house section.")
+
+
+def smallStraight():
+    """
+    This function checks for and scores small straights (+30 points)
+    :return:
+    """
+    allDice.sort()
+    if 1 in allDice and 2 in allDice and 3 in allDice and 4 in allDice:
+        scorecard['Small Straight'] = 30
+    elif 2 in allDice and 3 in allDice and 4 in allDice and 5 in allDice:
+        scorecard['Small Straight'] = 30
+    elif 3 in allDice and 4 in allDice and 5 in allDice and 6 in allDice:
+        scorecard['Small Straight'] = 30
+    else:
+        print("This roll is not a small straight. You will receive a zero in your small straight section. ")
+
+
+def largeStraight():
+    """
+    This function finds and scores large straights (+40 points)
+    :return:
+    """
+    if 1 in allDice and 2 in allDice and 3 in allDice and 4 in allDice and 5 in allDice:
+        scorecard['Large Straight'] = 40
+    elif 2 in allDice and 3 in allDice and 4 in allDice and 5 in allDice and 6 in allDice:
+        scorecard['Large Straight'] = 40
+    else:
+        print("This roll is not a large straight. You will receive a zero in your large straight section.")
+
+
+def Yahtzee():
+    """
+    This checks to see if it's a true Yahtzee. If so, adds 50 points to scorecard. If not, leaves as zero
+    :return:
+    """
+    if allDice[0] == allDice[1] and allDice[1] == allDice[2] and allDice[2] == allDice[3] and allDice[3] == allDice[4]:
+        scorecard['Yahtzee'] = 50
+    else:
+        print("This roll is not a Yahtzee. You will receive a zero in your yahtzee section.")
+
+
+def Chance():
+    """
+    This takes the total of all dice and adds to chance spot of scoreboard
+    :return:
+    """
+    newScore = 0
+    for i in allDice:
+        newScore = newScore + i
+    # print(newScore)
+    scorecard["Chance"] = newScore
+
+
+def endGame():
+    """
+    This ends the game after 13 turns and offers to play again.
+    :return:
+    """
+    global turns
+    global roll
+    turns = turns - 1
+    if turns == 0:
+        calcScore()
+        offer = input('Would you like to play again? (y or n): ')
+        if offer == 'y':
+            playAgain()
+        else:
+            print("Thanks for playing!")
+            sys.exit()
+
+    else:
+        gamePlay()
+        roll = 4
+
+
+requestDirections()
+gamePlay()
